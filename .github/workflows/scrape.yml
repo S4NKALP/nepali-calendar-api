@@ -19,44 +19,63 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          fetch-depth: 0  # needed for pushes
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Set up Python
+      - name: Install Python 3.13
         run: uv python install 3.13
 
       - name: Determine current Nepali year and run scraper
         run: |
+          set -e  # stop on errors
+
           MANUAL_YEAR="${{ github.event.inputs.year }}"
-          
+
           if [ -n "$MANUAL_YEAR" ]; then
             echo "Using manually specified year: $MANUAL_YEAR"
-            uv run scraper.py $MANUAL_YEAR --dir
+            uv run python -- scraper.py "$MANUAL_YEAR" --dir
           else
-            # Calculate approximate BS year (Shell logic)
+            # Get current AD date components
             AD_YEAR=$(date +%Y)
-            AD_MONTH=$(date +10%m | sed 's/10//') # Strips leading zero
-            AD_DAY=$(date +10%d | sed 's/10//')
-            
+            AD_MONTH=$(date +%-m)  # remove leading zero
+            AD_DAY=$(date +%-d)
+
+            # Calculate approximate BS year
             BS_YEAR=$((AD_YEAR + 56))
             if [ "$AD_MONTH" -gt 4 ] || ([ "$AD_MONTH" -eq 4 ] && [ "$AD_DAY" -ge 14 ]); then
               BS_YEAR=$((BS_YEAR + 1))
             fi
-            echo "$BS_YEAR" > bs_year.txt
-            
-            BS_YEAR=$(cat bs_year.txt)
             echo "Current Nepali Year (approx): $BS_YEAR"
-            
-            # Run the scraper for the current year
-            uv run scraper.py $BS_YEAR --dir
+
+            # Scrape current year
+            uv run python -- scraper.py "$BS_YEAR" --dir
+
+            # Scrape next year if within first 15 days of BS New Year
+            if [ "$AD_MONTH" -eq 4 ] && [ "$AD_DAY" -ge 14 ] && [ "$AD_DAY" -le 28 ]; then
+              NEXT_YEAR=$((BS_YEAR + 1))
+              echo "Near New Year, also scraping next year: $NEXT_YEAR"
+              uv run python -- scraper.py "$NEXT_YEAR" --dir
+            fi
           fi
 
-      - name: Commit and push changes
+      - name: Commit and push changes using PAT
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
           git add data/
-          git commit -m "Automated update of Nepali calendar data" || exit 0
-          git pull --rebase origin main
-          git push
+          
+          # Commit only if there are changes
+          git diff-index --quiet HEAD || git commit -m "Automated update of Nepali calendar data"
+          
+          # Pull latest changes to avoid conflicts
+          git pull --rebase origin main || true
+          
+          # Push using PAT and set upstream
+          git push --set-upstream https://x-access-token:${PAT_TOKEN}@github.com/${GITHUB_REPOSITORY}.git HEAD:main
