@@ -23,35 +23,36 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Install Python 3.13
+      - name: Set up Python
         run: uv python install 3.13
 
       - name: Determine current Nepali year and run scraper
         run: |
-          set -e  # Exit immediately if a command fails
-          
           MANUAL_YEAR="${{ github.event.inputs.year }}"
           
           if [ -n "$MANUAL_YEAR" ]; then
             echo "Using manually specified year: $MANUAL_YEAR"
-            uv run python scraper.py "$MANUAL_YEAR" --dir
+            uv run scraper.py $MANUAL_YEAR --dir
           else
-            # Calculate approximate current BS year
-            BS_YEAR=$(python3 - << 'EOF'
+            # Calculate current BS year (approximate logic for scheduling)
+            # BS year = AD year + 56 (for most months) or 57 (after mid-April)
+            python3 << 'EOF' > bs_year.txt
 import datetime
 now = datetime.datetime.now()
+# Approx Nepali New Year is April 14
 bs_year = now.year + 56
 if now.month > 4 or (now.month == 4 and now.day >= 14):
     bs_year += 1
 print(bs_year)
 EOF
-)
+            
+            BS_YEAR=$(cat bs_year.txt)
             echo "Current Nepali Year (approx): $BS_YEAR"
             
-            # Run scraper for current and next year
-            uv run python scraper.py "$BS_YEAR" --dir
+            # Run the scraper for the current year (and maybe the next to be safe)
+            uv run scraper.py $BS_YEAR --dir
             NEXT_YEAR=$((BS_YEAR + 1))
-            uv run python scraper.py "$NEXT_YEAR" --dir
+            uv run scraper.py $NEXT_YEAR --dir
           fi
 
       - name: Commit and push changes
@@ -59,5 +60,5 @@ EOF
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
           git add data/
-          git diff-index --quiet HEAD || git commit -m "Automated update of Nepali calendar data"
+          git commit -m "Automated update of Nepali calendar data" || exit 0
           git push
