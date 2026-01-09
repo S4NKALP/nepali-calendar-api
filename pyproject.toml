@@ -1,0 +1,13 @@
+[project]
+name = "nepali-calendar-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.13.3",
+    "beautifulsoup4>=4.14.3",
+    "colorama>=0.4.6",
+    "fastapi>=0.115.11",
+    "uvicorn>=0.34.0",
+]

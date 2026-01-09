@@ -1,0 +1,5 @@
+runtime: python
+startCommand: uvicorn app:app --port 8080
+buildCommand: pip install -r requirements.txt
+port: 8080
+memory: 512mb
