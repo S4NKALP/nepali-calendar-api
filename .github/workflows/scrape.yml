@@ -48,10 +48,8 @@ jobs:
             BS_YEAR=$(cat bs_year.txt)
             echo "Current Nepali Year (approx): $BS_YEAR"
             
-            # Run the scraper for the current year (and maybe the next to be safe)
+            # Run the scraper for the current year
             uv run scraper.py $BS_YEAR --dir
-            NEXT_YEAR=$((BS_YEAR + 1))
-            uv run scraper.py $NEXT_YEAR --dir
           fi
 
       - name: Commit and push changes
