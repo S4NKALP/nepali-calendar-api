@@ -3,7 +3,15 @@ name: Scheduled Calendar Scraping
 on:
   schedule:
     - cron: '0 0 * * *' # Runs daily at midnight UTC
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Year to scrape (optional, defaults to current BS year)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   scrape:
@@ -20,25 +28,32 @@ jobs:
 
       - name: Determine current Nepali year and run scraper
         run: |
-          # Calculate current BS year (approximate logic for scheduling)
-          # BS year = AD year + 56 (for most months) or 57 (after mid-April)
-          python3 -c "
-          import datetime
-          now = datetime.datetime.now()
-          # Approx Nepali New Year is April 14
-          bs_year = now.year + 56
-          if now.month > 4 or (now.month == 4 and now.day >= 14):
-              bs_year += 1
-          print(bs_year)
-          " > bs_year.txt
+          MANUAL_YEAR="${{ github.event.inputs.year }}"
           
-          BS_YEAR=$(cat bs_year.txt)
-          echo "Current Nepali Year (approx): $BS_YEAR"
-          
-          # Run the scraper for the current year (and maybe the next to be safe)
-          uv run scraper.py $BS_YEAR --dir
-          NEXT_YEAR=$((BS_YEAR + 1))
-          uv run scraper.py $NEXT_YEAR --dir
+          if [ -n "$MANUAL_YEAR" ]; then
+            echo "Using manually specified year: $MANUAL_YEAR"
+            uv run scraper.py $MANUAL_YEAR --dir
+          else
+            # Calculate current BS year (approximate logic for scheduling)
+            # BS year = AD year + 56 (for most months) or 57 (after mid-April)
+            python3 -c "
+            import datetime
+            now = datetime.datetime.now()
+            # Approx Nepali New Year is April 14
+            bs_year = now.year + 56
+            if now.month > 4 or (now.month == 4 and now.day >= 14):
+                bs_year += 1
+            print(bs_year)
+            " > bs_year.txt
+            
+            BS_YEAR=$(cat bs_year.txt)
+            echo "Current Nepali Year (approx): $BS_YEAR"
+            
+            # Run the scraper for the current year (and maybe the next to be safe)
+            uv run scraper.py $BS_YEAR --dir
+            NEXT_YEAR=$((BS_YEAR + 1))
+            uv run scraper.py $NEXT_YEAR --dir
+          fi
 
       - name: Commit and push changes
         run: |
