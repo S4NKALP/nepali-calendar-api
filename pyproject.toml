@@ -14,3 +14,7 @@ dependencies = [
 authors = [
     { name = "Sankalp Tharu", email = 'sankalptharu50028@gmail.com' },
 ]
+[dependency-groups]
+dev = [
+    "ruff>=0.14.6",
+]

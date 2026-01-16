@@ -147,7 +147,9 @@ async def fetch_month(session, year, month, save_dir=True, attempt=1):
 
 async def scrape_year(session, year, save_single=True, save_dir=True):
     print(Style.BRIGHT + f"\nStarting scrape for year: {Fore.CYAN}{year}")
-    print(f"   Mode: {'Single JSON' if save_single else ''} {'Directory' if save_dir else ''}\n")
+    print(
+        f"   Mode: {'Single JSON' if save_single else ''} {'Directory' if save_dir else ''}\n"
+    )
     year_data = {}
     success_count = 0
 
@@ -167,7 +169,7 @@ async def scrape_year(session, year, save_single=True, save_dir=True):
         with open(year_file_path, "w", encoding="utf-8") as f:
             json.dump(year_data, f, indent=2, ensure_ascii=False)
         print(Style.BRIGHT + Fore.GREEN + f"\nSaved aggregated file: {year_file_path}")
-    
+
     fail_count = 12 - success_count
     print(Fore.LIGHTBLACK_EX + f"Success: {success_count}  Failed: {fail_count}\n")
 
@@ -183,9 +185,21 @@ async def scrape_years(start_year, end_year, save_single=True, save_dir=True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Nepali Calendar Scraper")
-    parser.add_argument("years", nargs="+", type=int, help="Year or year range (start end)")
-    parser.add_argument("--single", nargs="?", const="json", help="Generate single JSON (e.g. --single json)")
-    parser.add_argument("--dir", nargs="?", const="format", help="Generate directory format (e.g. --dir format)")
+    parser.add_argument(
+        "years", nargs="+", type=int, help="Year or year range (start end)"
+    )
+    parser.add_argument(
+        "--single",
+        nargs="?",
+        const="json",
+        help="Generate single JSON (e.g. --single json)",
+    )
+    parser.add_argument(
+        "--dir",
+        nargs="?",
+        const="format",
+        help="Generate directory format (e.g. --dir format)",
+    )
 
     args = parser.parse_args()
 
