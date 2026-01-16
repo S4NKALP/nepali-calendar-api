@@ -11,3 +11,6 @@ dependencies = [
     "fastapi>=0.115.11",
     "uvicorn>=0.34.0",
 ]
+authors = [
+    { name = "Sankalp Tharu", email = 'sankalptharu50028@gmail.com' },
+]
